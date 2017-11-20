@@ -1,0 +1,241 @@
+<html>
+
+<title>
+    Coursework 2
+</title>
+
+<header>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css"
+          integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap-theme.min.css"
+          integrity="sha384-rHyoN1iRsVXV4nD0JutlnGaslCJuC7uwjduW9SVrLvRYooPp2bWYgmgJQIXwl/Sp" crossorigin="anonymous">
+</header>
+
+<style>
+    .glyphicon {
+        font-size: 10px;
+    }
+</style>
+
+<body>
+<br/>
+<div class="container">
+    <div class="col-sm-6 col-xs-6">
+        <div class="panel panel-primary">
+            <div class="panel-heading">
+                <h2>Product Entry</h2>
+            </div>
+            <div class="panel-body">
+                <form id="new_product_form" method="POST">
+                    {% csrf_token %}
+                    <div class="form-group has-feedback">
+                        <label for="name">Product Name:</label>
+                        <input type="text" class="form-control" id="name"
+                               placeholder="Enter a creative name for a product" pattern="^[a-zA-Z0-9\s]{1,255}$"
+                               data-error="Letters and numbers only please. Maximum: 255" required/>
+                        <div class="help-block with-errors"></div>
+                    </div>
+                    <div class="form-group has-feedback">
+                        <label for="description">Product Description:</label>
+                        <input type="text" class="form-control" id="description"
+                               placeholder="Describe your awesome product" pattern="^[a-zA-Z0-9\s]{1,255}$"
+                               data-error="Letters and numbers only please. Maximum: 255" required/>
+                        <div class="help-block with-errors"></div>
+                    </div>
+                    <div class="form-group has-feedback">
+                        <label for="price">Product Price:</label>
+                        <input type="text" class="form-control" id="price" placeholder="Is it expensive?"
+                               pattern="^\d{1,100}$" data-error="Numbers only please. Maximum: 100" required/>
+                        <div class="help-block with-errors"></div>
+                    </div>
+                    <button type="submit" class="btn btn-default">Submit</button>
+                </form>
+                <div id="alert_add" class="alert alert-info alert-dismissable" style="display: none;">
+                    <a href="#" class="close" data-dismiss="alert" aria-label="close">×</a>
+                    <p id="alert_add_text"></p>
+                </div>
+                <div id="alert_modify" class="alert alert-warning alert-dismissable" style="display: none;">
+                    <a href="#" class="close" data-dismiss="alert" aria-label="close">×</a>
+                    <p id="alert_modify_text"></p>
+                </div>
+                <div id="alert_del" class="alert alert-danger alert-dismissable" style="display: none;">
+                    <a href="#" class="close" data-dismiss="alert" aria-label="close">×</a>
+                    <p id="alert_del_text"></p>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-xs-6">
+        <div class="panel panel-success">
+            <div class="panel-heading">
+                <h2>Product Database</h2>
+            </div>
+            <div id="products" class="panel-body">
+                <ul>
+                </ul>
+            </div>
+        </div>
+    </div>
+    <div id="dataModal" class="modal fade">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <button type="button" class="close" data-dismiss="modal">&times;</button>
+                    <h4 class="modal-title">Product Details</h4>
+                </div>
+                <div class="modal-body" id="product_details">
+                    <form id="modify_product_form">
+                        <div class="form-group has-feedback">
+                            <label for="edit_name">Product Name:</label>
+                            <input type="text" class="form-control" id="edit_name" value=""
+                                   pattern="^[a-zA-Z0-9\s]{1,255}$"
+                                   data-error="Letters and numbers only please. Maximum: 255" required/>
+                            <div class="help-block with-errors"></div>
+                        </div>
+                        <div class="form-group has-feedback">
+                            <label for="edit_description">Product Description:</label>
+                            <input type="text" class="form-control" id="edit_description" value=""
+                                   pattern="^[a-zA-Z0-9\s]{1,255}$"
+                                   data-error="Letters and numbers only please. Maximum: 255" required/>
+                            <div class="help-block with-errors"></div>
+                        </div>
+                        <div class="form-group has-feedback">
+                            <label for="edit_price">Product Price:</label>
+                            <input type="text" class="form-control" id="edit_price" value="" pattern="^\d{1,100}$"
+                                   data-error="Numbers only please. Maximum: 100" required/>
+                            <div class="help-block with-errors"></div>
+                        </div>
+                        <button type="submit" class="btn btn-success">Modify</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+</div>
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
+<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"
+        integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa"
+        crossorigin="anonymous"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/1000hz-bootstrap-validator/0.11.9/validator.js"></script>
+</body>
+
+<script type="text/javascript">
+    $(function () {
+        info = {}; // avoid global variables
+        info.product_ul = $("#products ul");
+        info.selected_product = "";
+
+//        GETTING ALL PRODUCTS
+        $.ajax({
+            type: 'GET',
+            url: 'get/',
+            dataType: 'json',
+            success: function (data) { // When successfuly completed..
+                $.each(data, function (i, product) { // For each product in data
+                    var product_html = "<li id=" + product.id + "><button class='delete btn btn-xs btn-danger'><span class='glyphicon glyphicon-remove'></span></button>" +
+                        " <button class='modify btn btn-xs btn-warning'><span class='glyphicon glyphicon-cog'></span></button> " +
+                        product.name + "</li>";
+                    info.product_ul.append(product_html);
+                });
+            }
+        });
+//        MODIFYING A PRODUCT
+        info.product_ul.on("click", ".modify", function () { // On clicking modify
+            info.selected_product = $(this).parents('li').attr('id'); // Get the PK which is the ID of the <li>
+            $.ajax({
+                type: 'GET',
+                url: 'get/',
+                dataType: 'json',
+                success: function (data) {
+                    $.each(data, function (key, value) { // Loop through all products from the json response
+                        if (value.id == info.selected_product) { // If PK matches product PK from response
+                            $('#dataModal').modal("show"); // Show modal
+                            $('#edit_name').val(value.name); // Set the values
+                            $('#edit_description').val(value.description);
+                            $('#edit_price').val(value.price);
+                        }
+                    });
+                }
+            });
+        });
+
+        $("#modify_product_form").validator().on("submit", function (event) { // On submitting the modify form
+            event.preventDefault(); // Prevent refresh
+
+            var product_data = { // Get the values from the form
+                name: $('#edit_name').val(),
+                description: $('#edit_description').val(),
+                price: $('#edit_price').val()
+            };
+
+            $.ajax({
+                type: 'PUT',
+                url: 'modify/' + info.selected_product + '/',
+                data: product_data,
+                beforeSend: function (xhr) {
+                    xhr.setRequestHeader("X-CSRFToken", "{{ csrf_token }}");
+                },
+                success: function (product) {
+                    var product_html = "<li id=" + product.id + "><button class='delete btn btn-xs btn-danger'><span class='glyphicon glyphicon-remove'></span></button>" +
+                        " <button class='modify btn btn-xs btn-warning'><span class='glyphicon glyphicon-cog'></span></button> " +
+                        product.name + "</li>";
+                    $('#' + product.id).html(product_html); // Change the html to the modified version so it updates the list
+                    $('#dataModal').modal("hide"); // Hide the modal
+
+                    $("#alert_modify").fadeIn('slow').delay(2000).fadeOut('slow');
+                    $("#alert_modify_text").html("<strong>" + product.name + "</strong> has been modified!");
+                }
+            });
+        });
+
+
+//        DELETING A PRODUCT
+        info.product_ul.on("click", ".delete", function () {
+            var id = $(this).parents('li').attr('id'); // Get the ID of the product by selecting the parents (li) ID attribute so we know the PK
+            $.ajax({
+                type: 'DELETE',
+                url: 'delete/' + id, // Send the delete request with the PK for processing
+                beforeSend: function (xhr) {
+                    xhr.setRequestHeader("X-CSRFToken", "{{ csrf_token }}");
+                },
+                success: function (product) { // When successfuly completed..
+                    $('#' + id).fadeOut(); // Fade out the item deleted
+
+                    $("#alert_del").fadeIn('slow').delay(2000).fadeOut('slow');
+                    $("#alert_del_text").html("<strong>" + product.name + "</strong> has been deleted!");
+                }
+            });
+        });
+//        ADDING A NEW PRODUCT
+        $("#new_product_form").validator().on("submit", function (event) {
+            event.preventDefault(); // Prevent page refresh
+
+            var product_data = {
+                name: $('#name').val(), // Name of product
+                description: $('#description').val(), // Description of product
+                price: $('#price').val(), // Price of product
+                csrfmiddlewaretoken: '{{ csrf_token }}'
+            };
+
+            $.ajax({
+                type: 'POST',
+                url: 'create/',
+                data: product_data, // Send over the inputted data
+                success: function (product) { // When successfully completed..
+                    $("#new_product_form").trigger("reset");
+                    var product_html = "<li id=" + product.id + "><button class='delete btn btn-xs btn-danger'><span class='glyphicon glyphicon-remove'></span></button>" +
+                        " <button class='modify btn btn-xs btn-warning'><span class='glyphicon glyphicon-cog'></span></button> " +
+                        product.name + "</li>";
+                    info.product_ul.append(product_html);
+
+                    $("#alert_add").fadeIn('slow').delay(2000).fadeOut('slow');
+                    $("#alert_add_text").html("<strong>" + product.name + "</strong> has been added!");
+                }
+            });
+        });
+    });
+</script>
+
+
+</html>
